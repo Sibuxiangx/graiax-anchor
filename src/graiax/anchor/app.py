@@ -98,12 +98,38 @@ class Anchor:
             Anchor.launch_manager = launch_manager
         if Anchor.launch_manager is None:
             Anchor.launch_manager = Launart()
+
+        self._install_dispatchers()
+
         self.service = AnchorService(broadcast, config)
         self.service.add_event_callback(self.log_config.event_hook(self))
         self.service.add_event_callback(self._event_hook)
         self.account = config.account
         if self.account:
             Anchor.instances[self.account] = self
+
+    def _install_dispatchers(self) -> None:
+        """向 Broadcast 注册全局 Dispatcher, 使监听器可通过类型注解自动注入参数."""
+        from .dispatcher import (
+            AnchorDispatcher,
+            EventDispatcher,
+            GroupDispatcher,
+            MessageChainDispatcher,
+            ReplyDispatcher,
+            SenderDispatcher,
+        )
+
+        existing = {type(d) for d in self.broadcast.prelude_dispatchers}
+        for dispatcher_cls in (
+            AnchorDispatcher,
+            EventDispatcher,
+            MessageChainDispatcher,
+            SenderDispatcher,
+            GroupDispatcher,
+            ReplyDispatcher,
+        ):
+            if dispatcher_cls not in existing:
+                self.broadcast.prelude_dispatchers.append(dispatcher_cls())  # type: ignore[arg-type]
 
     async def _event_hook(self, event: OneBotEvent) -> None:
         if not self.account and hasattr(event, "self_id") and event.self_id:
