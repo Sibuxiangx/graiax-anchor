@@ -1,0 +1,77 @@
+[project]
+name = "graiax-anchor"
+version = "0.1.0"
+description = "An elegant OneBot 11 protocol framework for Python, inspired by Graia Ariadne."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "Linnian" },
+]
+keywords = ["graia", "bot", "qq", "framework", "onebot", "napcat", "anchor"]
+classifiers = [
+    "Topic :: Communications :: Chat",
+    "Framework :: Robot Framework :: Library",
+    "Framework :: AsyncIO",
+    "Typing :: Typed",
+    "Development Status :: 3 - Alpha",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3 :: Only",
+]
+dependencies = [
+    "graia-broadcast>=0.23.0,<0.24",
+    "aiohttp>=3.9",
+    "pydantic>=2.0",
+    "typing-extensions>=4.4,<5.0",
+    "launart>=0.6.4,<0.7",
+    "creart>=0.3.0,<0.4",
+    "loguru>=0.7",
+]
+
+[project.urls]
+repository = "https://github.com/Sibuxiangx/graiax-anchor"
+
+[project.optional-dependencies]
+standard = ["richuru>=0.1", "graia-scheduler>=0.2.0,<0.3", "graia-saya>=0.0.18"]
+graia = ["graia-scheduler>=0.2.0,<0.3", "graia-saya>=0.0.18"]
+full = ["richuru>=0.1", "graia-scheduler>=0.2.0,<0.3", "graia-saya>=0.0.18"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/graiax"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "C", "T", "Q"]
+ignore = ["C901"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["graiax"]
+extra-standard-library = ["typing_extensions"]
+
+[tool.pyright]
+pythonVersion = "3.10"
+ignore = [
+    "docs/**",
+    "**/site-packages/**/*.py",
+    "**/test*/**/*.py",
+]
+reportIncompatibleMethodOverride = false
+reportIncompatibleVariableOverride = false
+reportCallIssue = false
+reportMissingImports = "warning"
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.408",
+    "ruff>=0.15.4",
+]
