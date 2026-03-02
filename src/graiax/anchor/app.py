@@ -109,7 +109,7 @@ class Anchor:
             Anchor.instances[self.account] = self
 
     def _install_dispatchers(self) -> None:
-        """向 Broadcast 注册全局 Dispatcher, 使监听器可通过类型注解自动注入参数."""
+        """向 Broadcast.finale_dispatchers 注册全局 Dispatcher, 使监听器可通过类型注解自动注入参数."""
         from .dispatcher import (
             AnchorDispatcher,
             EventDispatcher,
@@ -119,7 +119,7 @@ class Anchor:
             SenderDispatcher,
         )
 
-        existing = {type(d) for d in self.broadcast.prelude_dispatchers}
+        existing = {type(d) for d in self.broadcast.finale_dispatchers}
         for dispatcher_cls in (
             AnchorDispatcher,
             EventDispatcher,
@@ -129,7 +129,7 @@ class Anchor:
             ReplyDispatcher,
         ):
             if dispatcher_cls not in existing:
-                self.broadcast.prelude_dispatchers.append(dispatcher_cls())  # type: ignore[arg-type]
+                self.broadcast.finale_dispatchers.append(dispatcher_cls())
 
     async def _event_hook(self, event: OneBotEvent) -> None:
         if not self.account and hasattr(event, "self_id") and event.self_id:

@@ -1,6 +1,6 @@
 [project]
 name = "graiax-anchor"
-version = "0.1.1"
+version = "0.1.2"
 description = "An elegant OneBot 11 protocol framework for Python, inspired by Graia Ariadne."
 readme = "README.md"
 requires-python = ">=3.10"

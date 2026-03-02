@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import functools
 import sys
-import traceback
 from collections.abc import Awaitable, Callable
 from typing import (
     TYPE_CHECKING,
@@ -188,6 +187,8 @@ class LogConfig(dict[type["OneBotEvent"], str | None]):
 
 # ── 异常回调 ──────────────────────────────────────────────────────────────────
 
+_exc_callback_guard = False
+
 
 def loguru_exc_callback(
     cls: type[BaseException],
@@ -199,38 +200,59 @@ def loguru_exc_callback(
     """loguru 同步异常回调, 用于替换 ``sys.excepthook``.
 
     过滤掉 graia-broadcast 的 ``ExecutionStop`` 和 ``PropagationCancelled``.
+    内置重入保护, 防止 loguru 内部异常时产生死锁.
     """
-    if not issubclass(cls, (ExecutionStop, PropagationCancelled)):
+    global _exc_callback_guard  # noqa: PLW0603
+    if _exc_callback_guard:
+        return
+    if issubclass(cls, (ExecutionStop, PropagationCancelled)):
+        return
+    _exc_callback_guard = True
+    try:
         logger.opt(exception=(cls, val, tb)).error("Exception:")
+    finally:
+        _exc_callback_guard = False
 
 
 def loguru_exc_callback_async(loop: Any, context: dict) -> None:
     """loguru 异步异常回调, 用于替换 ``asyncio.loop.set_exception_handler``.
 
     过滤掉 graia-broadcast 相关的内部异常.
+    内置重入保护.
     """
-    message = context.get("message", "Unhandled exception in event loop")
-    exception = context.get("exception")
-    if exception is None:
-        exc_info: Any = False
-    elif isinstance(exception, (ExecutionStop, PropagationCancelled)):
+    global _exc_callback_guard  # noqa: PLW0603
+    if _exc_callback_guard:
         return
-    else:
-        exc_info = (type(exception), exception, exception.__traceback__)
+    exception = context.get("exception")
+    if exception is not None and isinstance(exception, (ExecutionStop, PropagationCancelled)):
+        return
 
-    log_lines = [message]
-    for key in sorted(context):
-        if key in {"message", "exception"}:
-            continue
-        log_lines.append(f"  {key}: {context[key]!r}")
+    _exc_callback_guard = True
+    try:
+        message = context.get("message", "Unhandled exception in event loop")
+        if exception is None:
+            exc_info: Any = False
+        else:
+            exc_info = (type(exception), exception, exception.__traceback__)
 
-    logger.opt(exception=exc_info).error("\n".join(log_lines))
+        log_lines = [message]
+        for key in sorted(context):
+            if key in {"message", "exception"}:
+                continue
+            log_lines.append(f"  {key}: {context[key]!r}")
+
+        logger.opt(exception=exc_info).error("\n".join(log_lines))
+    finally:
+        _exc_callback_guard = False
 
 
 def install_log_hooks() -> None:
-    """安装 loguru 异常回调到 sys.excepthook 和 traceback.print_exception."""
+    """安装 loguru 异常回调到 sys.excepthook.
+
+    注意: 不替换 ``traceback.print_exception``, 否则 loguru 内部输出异常时
+    会再次调用该函数, 导致不可重入死锁.
+    """
     sys.excepthook = loguru_exc_callback  # type: ignore[assignment]
-    traceback.print_exception = loguru_exc_callback  # type: ignore[assignment]
 
 
 def install_richuru() -> None:
